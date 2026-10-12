@@ -1,0 +1,1887 @@
+Build a production-quality, browser-based industrial petrophysics application called:
+
+"HFA — Hydraulic Flow Analysis Suite"
+
+Subtitle:
+"Integrated Hydraulic Flow Unit, Petrophysics & Reservoir Quality Analysis"
+
+The application must feel like a professional subsurface/petrophysics interpretation suite rather than a generic analytics dashboard.
+
+============================================================
+1. CORE PRODUCT PHILOSOPHY
+============================================================
+
+Build the application around a complete Hydraulic Flow Unit (HFU)
+workflow:
+
+Raw Well Data
+    ↓
+Data Import & QC
+    ↓
+Depth Matching / Core-Log Integration
+    ↓
+Petrophysical Parameter Calculation
+    ↓
+RQI / FZI / HFU Analysis
+    ↓
+Crossplots & Statistical Analysis
+    ↓
+HFU Clustering
+    ↓
+Regression / Feature Selection
+    ↓
+FZI Prediction from Logs
+    ↓
+Validation
+    ↓
+Depth-Based HFU Interpretation
+    ↓
+Reservoir Quality Summary
+    ↓
+Export / Report
+
+The software should support single-well and multi-well workflows.
+
+It must be optimized for large well-log datasets and should avoid
+unnecessary memory usage.
+
+IMPORTANT:
+Do NOT send raw well-log data to a backend unless absolutely required.
+
+Prefer:
+- browser-side parsing
+- Web Workers
+- streaming/chunked processing
+- typed arrays
+- IndexedDB for temporary persistence
+- lazy loading
+- downsampling only for visualization
+- statistical calculations on original-resolution data
+- serverless architecture where possible
+
+The application should work even if the user disconnects from the
+internet after loading the application.
+
+============================================================
+2. FILE IMPORT
+============================================================
+
+Support:
+
+Primary:
+- .LAS
+- .DLIS
+- .LIS
+- .CSV
+- .XLSX
+- .XLS
+
+Optional:
+- JSON
+- Parquet
+
+Import should support drag-and-drop.
+
+Create an Import Manager with:
+
+[Drop files here]
+
+and buttons:
+
++ Add Well
++ Add Core Data
++ Add Tops
++ Add Auxiliary Data
+
+After loading, show:
+
+File Name
+Well Name
+UWI/API
+Depth Start
+Depth Stop
+Sampling Interval
+Number of Curves
+Number of Samples
+Units
+Null Value
+LAS Version
+File Size
+
+For DLIS:
+
+Display:
+- Logical Files
+- Frames
+- Channels
+- Units
+- Index channel
+- Frame ranges
+
+Allow user to choose which DLIS frame/channels to import instead of
+loading the entire DLIS into memory.
+
+For XLSX/CSV:
+
+Allow:
+- sheet selection
+- depth column selection
+- header row selection
+- delimiter detection
+- decimal separator
+- null-value mapping
+- unit assignment
+
+============================================================
+3. MEMORY-EFFICIENT DATA ENGINE
+============================================================
+
+This is extremely important.
+
+Design the application for large well datasets.
+
+Use:
+
+Web Workers
+TypedArrays
+Float32Array where precision permits
+Float64Array for calculations requiring higher precision
+IndexedDB
+Chunked processing
+Lazy curve loading
+Virtualized tables
+
+Never duplicate the complete dataset unnecessarily.
+
+Architecture:
+
+File
+ ↓
+Parser Worker
+ ↓
+Normalized Internal Well Model
+ ↓
+IndexedDB / in-memory chunk store
+ ↓
+Visualization Worker / UI
+ ↓
+Analysis Worker
+
+Maintain metadata separately from numerical arrays.
+
+Example internal structure:
+
+Well
+{
+  id,
+  name,
+  uwi,
+  metadata,
+  depth: Float64Array,
+  curves: {
+      GR: Float32Array,
+      RHOB: Float32Array,
+      NPHI: Float32Array,
+      RT: Float32Array
+  },
+  curveMetadata
+}
+
+Do NOT store the same curve simultaneously as:
+- JavaScript arrays
+- JSON
+- DataFrames
+- chart datasets
+
+Use one canonical numerical representation.
+
+For plotting, generate only the visible depth window.
+
+============================================================
+4. APPLICATION LAYOUT
+============================================================
+
+Use a professional dark industrial subsurface interface.
+
+Overall layout:
+
+---------------------------------------------------------
+TOP BAR
+---------------------------------------------------------
+Project | Well | Data | Analysis | QC | Export | Settings
+---------------------------------------------------------
+
+LEFT SIDEBAR
+---------------------------------------------------------
+Project Explorer
+
+Wells
+  ├── Well-01
+  │    ├── Logs
+  │    ├── Core
+  │    ├── Tops
+  │    └── HFU
+  └── Well-02
+
+Analysis
+  ├── Log Visualization
+  ├── Crossplots
+  ├── Core-Log Match
+  ├── RQI/FZI
+  ├── HFU Clustering
+  ├── Regression
+  ├── Validation
+  └── Reservoir Summary
+
+---------------------------------------------------------
+MAIN WORKSPACE
+---------------------------------------------------------
+
+Right-side:
+Properties / Parameters / Statistics
+
+Bottom:
+Status Bar
+
+Show:
+Well
+Depth
+Cursor position
+Selected interval
+Active operation
+Processing status
+Memory usage if available
+
+============================================================
+5. PROJECT SYSTEM
+============================================================
+
+Allow users to create:
+
+New Project
+
+Project metadata:
+- Project Name
+- Field
+- Basin
+- Formation
+- Operator
+- Region
+- Analyst
+- Date
+- Notes
+
+Projects should be stored locally.
+
+Allow:
+
+Save Project
+Load Project
+Duplicate Project
+Export Project
+Import Project
+
+Project should store:
+- well metadata
+- curve mappings
+- calculated curves
+- depth shifts
+- HFU parameters
+- cluster configurations
+- regression models
+- plots
+- interpretation settings
+
+Do NOT store the original raw files unnecessarily if the project
+can reference them locally.
+
+============================================================
+6. CURVE MANAGEMENT
+============================================================
+
+Create a professional Curve Manager.
+
+Columns:
+
+Mnemonic
+Description
+Unit
+Type
+Data Type
+Min
+Max
+Null %
+Sampling
+Source
+
+Automatically categorize curves:
+
+Depth
+Gamma Ray
+Resistivity
+Density
+Neutron
+Sonic
+Porosity
+Permeability
+NMR
+Image
+Caliper
+Pressure
+Core
+Calculated
+
+Allow curve alias mapping.
+
+For example:
+
+GR → Gamma Ray
+HSGR → Gamma Ray
+RHOB → Bulk Density
+DEN → Bulk Density
+NPHI → Neutron Porosity
+TNPH → Neutron Porosity
+RT → Deep Resistivity
+AT90 → Deep Resistivity
+
+Allow user-defined mappings.
+
+============================================================
+7. INDUSTRIAL LOG VISUALIZATION
+============================================================
+
+Create a professional multi-track well-log viewer.
+
+Features:
+
+- unlimited tracks
+- drag/drop curves
+- multiple curves per track
+- linear scale
+- logarithmic scale
+- reverse scale
+- custom min/max
+- auto-scale
+- grid
+- minor grid
+- curve color
+- line thickness
+- fill left/right
+- crossover fills
+- depth labels
+- formation tops
+- markers
+- intervals
+- annotations
+
+Typical default layout:
+
+TRACK 1:
+Depth
+
+TRACK 2:
+GR
+Vsh
+
+TRACK 3:
+RHOB
+NPHI
+
+TRACK 4:
+DT
+PHIE
+
+TRACK 5:
+RT
+RXO
+
+TRACK 6:
+RQI
+FZI
+HFU
+
+TRACK 7:
+Permeability
+Core Permeability
+
+Allow synchronized depth scrolling.
+
+When cursor moves:
+all tracks synchronize.
+
+Display:
+
+Depth
+GR
+RHOB
+NPHI
+PHIE
+RQI
+FZI
+HFU
+
+in a floating cursor panel.
+
+============================================================
+8. DEPTH MANAGEMENT
+============================================================
+
+Create a dedicated Depth Manager.
+
+Support:
+
+Measured Depth
+TVD
+TVDSS
+Core Depth
+Log Depth
+Reference Depth
+
+Functions:
+
+- depth shift
+- stretch
+- squeeze
+- linear transformation
+- polynomial transformation
+- manual tie points
+- automatic correlation
+- interval-specific shift
+
+Core-log depth matching should support:
+
+Original Core Depth
+Shifted Core Depth
+Shift Amount
+Confidence
+Reference Marker
+
+Workflow:
+
+1. Select log curve
+2. Select core curve/data
+3. Display both
+4. Pick matching features
+5. Calculate depth shift
+6. Apply shift
+7. Preview before/after
+8. Accept/reject
+
+Show:
+
+Before Match
+After Match
+
+Allow different shifts for different cored intervals.
+
+Store depth transformations as reversible operations.
+
+============================================================
+9. CORE DATA MANAGEMENT
+============================================================
+
+Allow import of:
+
+CSV
+XLSX
+LAS
+manual table
+
+Typical columns:
+
+DEPTH
+POROSITY
+PERMEABILITY
+CORE_PHI
+CORE_K
+GRAIN_DENSITY
+MERCURY_INJECTION
+PC
+SATURATION
+FACIES
+
+Create a Core QC table.
+
+Allow:
+- duplicate removal
+- null filtering
+- outlier detection
+- depth matching
+- unit conversion
+- permeability unit conversion
+- porosity unit conversion
+
+Plot:
+
+Core K vs Depth
+Core Phi vs Depth
+Core K vs Phi
+Core K vs RQI
+Core K vs FZI
+
+============================================================
+10. PETROPHYSICAL CALCULATION ENGINE
+============================================================
+
+Create a formula engine.
+
+Users can create calculated curves.
+
+Example:
+
+Vsh
+
+PHIT
+
+PHIE
+
+Sw
+
+Rwa
+
+RQI
+
+FZI
+
+K
+
+K/PHI relationships
+
+All calculations should be transparent.
+
+Every calculated curve must show:
+
+Formula
+Inputs
+Units
+Version
+Missing-data handling
+
+============================================================
+11. HYDRAULIC FLOW UNIT ENGINE
+============================================================
+
+This is the central module.
+
+Create:
+
+"HFA / HFU Analyzer"
+
+The module should calculate and visualize:
+
+Porosity
+Permeability
+Normalized permeability
+RQI
+Phi_z
+FZI
+Hydraulic Flow Unit number
+
+Support the commonly used RQI/FZI workflow.
+
+Provide configurable equations rather than hard-coding one equation.
+
+For example:
+
+RQI = 0.0314 × sqrt(k / phi)
+
+and:
+
+FZI = RQI / phi_z
+
+where:
+
+phi_z = phi / (1 - phi)
+
+Clearly indicate the assumed units and allow the user to configure
+porosity representation and permeability units.
+
+IMPORTANT:
+Do not silently calculate if units are inconsistent.
+
+Display:
+
+Input Units
+Converted Units
+Calculation Status
+
+============================================================
+12. HFU IDENTIFICATION
+============================================================
+
+Provide several methods.
+
+METHOD A:
+FZI grouping
+
+METHOD B:
+Log(FZI) clustering
+
+METHOD C:
+K-phi flow zone analysis
+
+METHOD D:
+RQI-PHI crossplot
+
+METHOD E:
+User-defined clustering
+
+METHOD F:
+Machine-learning clustering
+
+Available clustering algorithms:
+
+- K-Means
+- Gaussian Mixture Model
+- Hierarchical Clustering
+- DBSCAN
+- Agglomerative Clustering
+
+Features can include:
+
+PHI
+K
+RQI
+FZI
+Vsh
+RHOB
+NPHI
+GR
+RT
+DT
+NMR parameters
+
+Allow user to select features.
+
+Before clustering show:
+
+Correlation Matrix
+Feature Distribution
+Outliers
+Missing Data %
+
+Allow normalization:
+
+None
+Standardization
+Min-Max
+Robust Scaling
+Log Transformation
+
+============================================================
+13. CLUSTER NUMBER SELECTION
+============================================================
+
+Provide:
+
+Elbow Method
+Silhouette Score
+Calinski-Harabasz
+Davies-Bouldin
+
+Plot metric vs number of clusters.
+
+Allow:
+
+K = 2 → 10
+
+User selects final K.
+
+Do not automatically overwrite user's choice.
+
+Show cluster statistics:
+
+Cluster
+N
+Mean Phi
+Median Phi
+Mean K
+Median K
+Mean RQI
+Mean FZI
+P10 K
+P50 K
+P90 K
+
+============================================================
+14. HFU CROSSPLOTS
+============================================================
+
+Create a professional Crossplot Studio.
+
+Axes can be any curve.
+
+X:
+GR
+Vsh
+PHI
+PHIE
+RHOB
+NPHI
+DT
+RT
+RQI
+FZI
+K
+NMR
+etc.
+
+Y:
+same list.
+
+Options:
+
+Color By:
+- HFU
+- Cluster
+- Facies
+- Depth
+- Vsh
+- User-selected curve
+
+Symbol:
+- Core
+- Log
+- Test
+- Validation
+
+Add:
+
+Linear regression
+Polynomial regression
+Power-law regression
+Exponential regression
+Log-linear regression
+
+Display:
+
+Equation
+R²
+RMSE
+MAE
+N
+Confidence interval
+
+Support log-log axes.
+
+Support:
+1:1 line
+trendline
+moving average
+density contours
+hexbin
+
+Allow lasso selection of points.
+
+Selected points should synchronize with the log viewer.
+
+============================================================
+15. MULTI-REGRESSION ENGINE
+============================================================
+
+Create:
+
+"FZI Regression Studio"
+
+Target variable:
+
+FZI
+
+Optional targets:
+
+log(FZI)
+RQI
+log(K)
+Permeability
+HFU class
+
+Candidate predictors:
+
+GR
+Vsh
+RHOB
+NPHI
+DT
+RT
+RXO
+PHIT
+PHIE
+NMR parameters
+calculated petrophysical curves
+
+Provide:
+
+Multiple Linear Regression
+Log-Linear Regression
+Polynomial Regression
+Ridge
+Lasso
+Elastic Net
+Random Forest
+XGBoost if available
+
+The user should be able to choose:
+
+Training interval
+Validation interval
+Well
+Cluster/HFU
+Features
+Target
+
+============================================================
+16. FEATURE SELECTION
+============================================================
+
+This should feel like an industrial interpretation tool.
+
+Provide:
+
+All Features
+
+Then feature selection methods:
+
+- Manual
+- Correlation filtering
+- VIF
+- Forward Selection
+- Backward Elimination
+- Recursive Feature Elimination
+- LASSO
+- Mutual Information
+- Random Forest Importance
+- Permutation Importance
+
+For every selected model show:
+
+Selected Features
+Coefficients
+Standard Error
+t-statistic
+p-value where applicable
+R²
+Adjusted R²
+RMSE
+MAE
+AIC
+BIC
+
+Show multicollinearity diagnostics.
+
+Example:
+
+Model 1:
+FZI = f(GR, RHOB, NPHI)
+
+Model 2:
+FZI = f(GR, PHIE, DT)
+
+Model 3:
+FZI = f(Vsh, PHIE, RT, NPHI)
+
+Allow side-by-side comparison.
+
+DO NOT provide a single opaque "best model".
+
+Instead show objective statistics and allow the analyst to choose.
+
+============================================================
+17. REGRESSION BY HFU / CLUSTER
+============================================================
+
+Critical feature.
+
+Allow:
+
+Global Regression
+
+OR
+
+Regression by HFU
+
+OR
+
+Regression by Cluster
+
+Example:
+
+HFU 1:
+FZI = ...
+
+HFU 2:
+FZI = ...
+
+HFU 3:
+FZI = ...
+
+For each group display:
+
+N
+Features
+Equation
+R²
+Adjusted R²
+RMSE
+MAE
+Residual statistics
+
+Allow minimum sample threshold.
+
+Warn if:
+
+N is too small
+missing data is high
+multicollinearity exists
+train/test leakage exists
+model extrapolation is occurring
+
+============================================================
+18. MODEL VALIDATION
+============================================================
+
+Create a dedicated Validation tab.
+
+Methods:
+
+Train/Test Split
+K-Fold Cross Validation
+Leave-One-Well-Out Validation
+Depth-blocked validation
+Cluster-stratified validation
+
+Important:
+
+Do not randomly split depth-correlated log samples by default.
+
+Provide:
+
+Random
+Depth Block
+Well-Based
+
+Validation plots:
+
+Predicted vs Actual
+Residual vs Depth
+Residual Histogram
+Residual vs Predicted
+Q-Q Plot
+
+Metrics:
+
+R²
+Adjusted R²
+RMSE
+MAE
+MAPE where appropriate
+Median Absolute Error
+
+============================================================
+19. PREDICTED FZI / HFU CURVES
+============================================================
+
+After model selection:
+
+Generate:
+
+FZI_PRED
+HFU_PRED
+K_PRED
+
+and display alongside actual:
+
+FZI_CORE
+FZI_LOG
+HFU_CORE
+HFU_PRED
+
+Allow the user to apply the model to:
+
+Entire well
+Selected interval
+Selected formation
+Selected cluster
+
+Mark extrapolated regions.
+
+============================================================
+20. HFU DEPTH TRACK
+============================================================
+
+Create a dedicated HFU track.
+
+Example:
+
+HFU 1
+HFU 2
+HFU 3
+HFU 4
+
+Use categorical background bands.
+
+Also display:
+
+FZI
+RQI
+K
+PHI
+
+against depth.
+
+When the user clicks an HFU interval:
+
+Show:
+
+Depth
+HFU
+Mean Phi
+Mean K
+Mean RQI
+Mean FZI
+Dominant facies
+Regression model
+Confidence
+
+============================================================
+21. HFU TRANSITION ANALYSIS
+============================================================
+
+Analyze vertical HFU behavior.
+
+Calculate:
+
+HFU thickness
+Number of HFU transitions
+Transition depth
+Mean interval thickness
+Vertical continuity
+Cluster persistence
+
+Create:
+
+HFU vs Depth
+HFU thickness histogram
+Transition matrix
+
+Allow comparison between wells.
+
+============================================================
+22. RESERVOIR QUALITY ANALYSIS
+============================================================
+
+Create:
+
+"Reservoir Quality"
+
+For every HFU show:
+
+Porosity statistics
+Permeability statistics
+RQI statistics
+FZI statistics
+Vsh statistics
+NMR statistics where available
+
+Allow ranking only as a factual ordering by a selected numeric
+property, not a subjective overall score.
+
+For example:
+
+Sort by Median K
+
+or
+
+Sort by Median FZI
+
+Clearly state the selected metric.
+
+============================================================
+23. STATISTICAL QC
+============================================================
+
+Create a QC dashboard.
+
+Show:
+
+Missing %
+Null %
+Outlier %
+Depth gaps
+Duplicate depth samples
+Sampling interval
+Unit consistency
+Curve coverage
+Core coverage
+
+Flag:
+
+CRITICAL
+WARNING
+INFO
+
+Examples:
+
+"Core permeability contains 18% null values."
+
+"Depth sampling changes from 0.1524 m to 0.3048 m."
+
+"RT and RDEP appear to represent duplicate measurements."
+
+"FZI calculation requires consistent porosity and permeability units."
+
+============================================================
+24. MULTI-WELL ANALYSIS
+============================================================
+
+Allow multiple wells.
+
+Display:
+
+Well selector
+
+For each well:
+
+Depth
+Formation
+HFU
+FZI
+RQI
+K
+PHI
+
+Support:
+
+Well-to-well comparison
+HFU distribution
+Cross-well statistics
+Formation-specific analysis
+
+Allow selecting:
+
+Well A
+Well B
+Well C
+
+and overlay their statistical distributions.
+
+============================================================
+25. FORMATION / ZONE MANAGEMENT
+============================================================
+
+Allow importing tops.
+
+Formats:
+
+CSV
+XLSX
+LAS
+
+Columns:
+
+Well
+Top
+Formation
+MD
+TVD
+TVDSS
+
+Display tops in log viewer.
+
+Allow analysis by:
+
+Formation
+Zone
+User-defined interval
+
+All calculations should be filterable by zone.
+
+============================================================
+26. INTERVAL SELECTION
+============================================================
+
+Provide advanced interval selection.
+
+Methods:
+
+Mouse drag
+Depth range
+Formation
+HFU
+Cluster
+Boolean condition
+
+Example:
+
+GR < 50
+AND
+PHIE > 0.10
+AND
+FZI > 1
+
+Allow formula-based filters.
+
+============================================================
+27. FORMULA BUILDER
+============================================================
+
+Build a visual formula editor.
+
+Example:
+
+FZI > 2 AND PHIE > 0.12 AND VSH < 0.3
+
+Support:
+
+AND
+OR
+NOT
+>
+<
+>=
+<=
+==
+BETWEEN
+
+Allow saved filters.
+
+============================================================
+28. DATA TABLE
+============================================================
+
+Provide virtualized table.
+
+Columns:
+
+DEPTH
+GR
+VSH
+RHOB
+NPHI
+PHIE
+K
+RQI
+FZI
+HFU
+
+Allow:
+
+sort
+filter
+hide
+freeze
+search
+export
+
+Do not render millions of rows at once.
+
+============================================================
+29. VISUALIZATION PERFORMANCE
+============================================================
+
+Use WebGL/canvas-based rendering where beneficial.
+
+Do NOT render every raw data point if it is outside the visible
+resolution.
+
+For log curves:
+
+Use intelligent min/max envelope downsampling for display.
+
+Important:
+
+Downsampling is ONLY for rendering.
+
+All scientific calculations must use original-resolution data.
+
+Use requestAnimationFrame and debounced interaction.
+
+============================================================
+30. EXPORT
+============================================================
+
+Support:
+
+CSV
+XLSX
+LAS
+JSON
+PNG
+SVG
+PDF
+
+Export:
+
+Selected curves
+Calculated curves
+HFU results
+Regression results
+Crossplots
+Log panels
+Core-log match
+QC report
+
+Create:
+
+"Generate Interpretation Report"
+
+Report should include:
+
+Project information
+Well information
+Data QC
+Depth matching
+Petrophysical methodology
+RQI/FZI methodology
+HFU identification
+Crossplots
+Clustering
+Regression models
+Validation
+HFU depth interpretation
+Key statistics
+Limitations
+Analyst notes
+
+============================================================
+31. AUDITABILITY
+============================================================
+
+Every calculated result should be traceable.
+
+Example:
+
+FZI_PRED
+
+Model:
+FZI Regression Model 03
+
+Inputs:
+GR
+RHOB
+NPHI
+PHIE
+
+Training:
+Well-01
+Depth 2450–2680 m
+
+Algorithm:
+Multiple Linear Regression
+
+R²:
+...
+
+RMSE:
+...
+
+Date:
+...
+
+This is extremely important for an industrial application.
+
+============================================================
+32. ANALYSIS HISTORY
+============================================================
+
+Create an Analysis History panel.
+
+Example:
+
+14:32
+Loaded Well-A.las
+
+14:35
+Applied core-log shift:
++2.4 m
+
+14:41
+Calculated RQI
+
+14:42
+Calculated FZI
+
+14:48
+Generated 4-cluster solution
+
+15:02
+Created FZI regression model
+
+15:12
+Generated predicted FZI
+
+Allow undo/redo.
+
+============================================================
+33. USER INTERFACE DESIGN
+============================================================
+
+The UI should resemble a professional subsurface interpretation
+environment.
+
+Avoid:
+
+- giant rounded cards
+- excessive gradients
+- excessive animations
+- consumer-dashboard appearance
+- excessive empty whitespace
+- unnecessary icons
+
+Prefer:
+
+- dense information layout
+- dark background
+- subtle borders
+- compact controls
+- professional typography
+- scientific notation where appropriate
+- engineering units
+- clear hierarchy
+
+Use a layout similar in philosophy to professional geoscience
+software:
+
+Project Explorer
+    +
+Track Viewer
+    +
+Analysis Workspace
+    +
+Properties Panel
+
+============================================================
+34. KEYBOARD SHORTCUTS
+============================================================
+
+Implement:
+
+Ctrl + O
+Open data
+
+Ctrl + S
+Save project
+
+Ctrl + Z
+Undo
+
+Ctrl + Y
+Redo
+
+Ctrl + F
+Find curve
+
+Mouse wheel:
+Zoom depth
+
+Shift + mouse wheel:
+Horizontal zoom
+
+Space:
+Toggle cursor
+
+Esc:
+Cancel selection
+
+============================================================
+35. INDUSTRIAL ERROR HANDLING
+============================================================
+
+Never silently fail.
+
+Show useful messages.
+
+Examples:
+
+"FZI calculation could not be completed because permeability
+contains incompatible units."
+
+"Regression requires at least 30 valid samples."
+
+"Depth matching cannot be performed because the selected curves
+have insufficient overlapping depth coverage."
+
+"DLIS contains 7 frames. Select a frame before importing."
+
+============================================================
+36. SECURITY / PRIVACY
+============================================================
+
+Default architecture:
+
+LOCAL-FIRST
+
+Raw well data should remain on the user's machine.
+
+No analytics telemetry containing well data.
+
+No automatic cloud upload.
+
+If a server-side operation is absolutely required, clearly tell the
+user what leaves the browser.
+
+Use local browser computation wherever practical.
+
+============================================================
+37. TECHNICAL ARCHITECTURE
+============================================================
+
+Recommended stack:
+
+Frontend:
+React + TypeScript
+
+Visualization:
+Plotly / Apache ECharts / D3
+Canvas/WebGL where appropriate
+
+State:
+Zustand or equivalent
+
+Data:
+TypedArrays
+IndexedDB
+
+Workers:
+Web Workers
+
+Tables:
+Virtualized table
+
+Machine Learning:
+Use browser-compatible numerical/ML libraries where feasible.
+
+For larger models, use a Python backend only as an optional
+compute service.
+
+Backend should be stateless where possible.
+
+Do NOT make the entire application dependent on a database.
+
+Use Supabase ONLY for optional:
+- authentication
+- project metadata
+- user preferences
+- collaboration metadata
+
+Do not store raw LAS/DLIS files in Supabase by default.
+
+============================================================
+38. DATA PIPELINE
+============================================================
+
+Implement this pipeline:
+
+RAW FILE
+   ↓
+FILE PARSER
+   ↓
+NORMALIZATION
+   ↓
+CURVE MAPPING
+   ↓
+DEPTH STANDARDIZATION
+   ↓
+QC
+   ↓
+CALCULATED CURVES
+   ↓
+CORE-LOG MATCH
+   ↓
+HFU ENGINE
+   ↓
+STATISTICS
+   ↓
+CLUSTERING
+   ↓
+REGRESSION
+   ↓
+VALIDATION
+   ↓
+INTERPRETATION
+   ↓
+EXPORT
+
+Every stage must be independently accessible.
+
+============================================================
+39. DEFAULT HFU WORKFLOW
+============================================================
+
+When the user loads:
+
+LAS + Core XLSX
+
+guide them through:
+
+STEP 1
+Import
+
+STEP 2
+Curve Mapping
+
+STEP 3
+QC
+
+STEP 4
+Depth Matching
+
+STEP 5
+Calculate:
+PHI
+K
+RQI
+FZI
+
+STEP 6
+Create RQI vs PHI plot
+
+STEP 7
+Identify HFUs
+
+STEP 8
+Run clustering
+
+STEP 9
+Review cluster statistics
+
+STEP 10
+Select log predictors
+
+STEP 11
+Run regression
+
+STEP 12
+Validate
+
+STEP 13
+Generate FZI_PRED
+
+STEP 14
+Generate HFU_PRED
+
+STEP 15
+Display HFU track
+
+STEP 16
+Export interpretation
+
+============================================================
+40. IMPORTANT SCIENTIFIC PRINCIPLES
+============================================================
+
+Do not hide formulas.
+
+Do not hide unit conversions.
+
+Do not silently remove outliers.
+
+Every filtering operation should display:
+
+Before:
+N = ...
+
+After:
+N = ...
+
+Removed:
+N = ...
+
+Reason:
+...
+
+Do not call a correlation causal.
+
+Do not call a cluster a geological HFU automatically.
+
+The application should distinguish:
+
+"Statistical Cluster"
+
+from:
+
+"Hydraulic Flow Unit"
+
+The analyst must be able to validate/rename the interpretation.
+
+============================================================
+41. ADVANCED FEATURES
+============================================================
+
+Add optional modules:
+
+NMR integration
+Mercury Injection Capillary Pressure
+SCAL integration
+Routine Core Analysis
+Image-log derived features
+Facies integration
+Formation pressure
+Permeability transforms
+Saturation-height integration
+
+Future:
+
+Seismic integration
+Well correlation
+3D reservoir visualization
+Geostatistical HFU propagation
+ML-based HFU classification
+
+============================================================
+42. DEMO MODE
+============================================================
+
+Include a built-in sample dataset so the application can be tested
+without uploading data.
+
+Create:
+
+Demo Well A
+Demo Well B
+Core Data
+Well Tops
+
+The demo should contain realistic synthetic petrophysical
+relationships but MUST clearly state:
+
+"DEMO DATA — NOT REAL RESERVOIR DATA"
+
+============================================================
+43. FINAL DASHBOARD
+============================================================
+
+Create a Home / Overview screen.
+
+Display:
+
+Wells:
+3
+
+Depth analyzed:
+4,820 m
+
+Core samples:
+326
+
+Valid FZI samples:
+287
+
+HFUs:
+4
+
+Regression models:
+7
+
+Active formation:
+Vulcan Formation
+
+Then cards:
+
+Data QC
+Core-Log Match
+HFU Analysis
+Regression
+Validation
+
+But keep the UI compact and professional.
+
+============================================================
+44. DEVELOPMENT PRIORITY
+============================================================
+
+Build in this order:
+
+PHASE 1
+File loading
+LAS
+CSV
+XLSX
+
+PHASE 2
+Curve manager
+Well-log visualization
+
+PHASE 3
+Core import
+Depth matching
+
+PHASE 4
+Petrophysical calculations
+
+PHASE 5
+RQI/FZI engine
+
+PHASE 6
+Crossplot studio
+
+PHASE 7
+HFU clustering
+
+PHASE 8
+Regression studio
+
+PHASE 9
+Validation
+
+PHASE 10
+Export
+
+PHASE 11
+DLIS support
+
+PHASE 12
+Advanced ML
+
+Do not attempt to build everything as one monolithic component.
+
+Use modular services:
+
+/parsers
+/data-engine
+/depth
+/petrophysics
+/hfu
+/clustering
+/regression
+/validation
+/visualization
+/export
+/project
+/qc
+
+============================================================
+45. MOST IMPORTANT REQUIREMENT
+============================================================
+
+The application must feel like something a professional
+petrophysicist could actually use to investigate:
+
+"Which petrophysical properties and wireline measurements explain
+the hydraulic flow behavior of this reservoir, and can I reproduce
+the HFU interpretation throughout uncored intervals?"
+
+The workflow should therefore connect:
+
+CORE
+ ↕
+DEPTH MATCH
+ ↕
+POROSITY / PERMEABILITY
+ ↕
+RQI / FZI
+ ↕
+HFU
+ ↕
+WIRELINE LOGS
+ ↕
+REGRESSION
+ ↕
+PREDICTED FZI
+ ↕
+PREDICTED HFU
+ ↕
+RESERVOIR INTERPRETATION
+
+Do not make this just a dashboard.
+
+Build it as an actual petrophysical interpretation workstation.
